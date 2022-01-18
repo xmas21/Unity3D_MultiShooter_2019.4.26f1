@@ -4,6 +4,7 @@ public class scr_MenuManager : MonoBehaviour
 {
     public static scr_MenuManager menuManager;
 
+    [Header("選單")]
     [SerializeField]
     private scr_Menu[] menus;
 
