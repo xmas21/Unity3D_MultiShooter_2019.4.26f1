@@ -27,6 +27,9 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     [Header("玩家預置物")]
     [SerializeField]
     private GameObject playerListItemPrefab;
+    [Header("開始遊戲按鈕")]
+    [SerializeField]
+    private GameObject startGameButton;
 
     public static scr_Launcher launcher;
 
@@ -54,6 +57,7 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     {
         Debug.Log("Connected to Master");
         PhotonNetwork.JoinLobby();
+        PhotonNetwork.AutomaticallySyncScene = true;
     }
 
     /// <summary>
@@ -62,9 +66,7 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     public override void OnJoinedLobby()
     {
         scr_MenuManager.menuManager.OpenMenu("大廳選單");
-
         Debug.Log("Join Lobby");
-
         PhotonNetwork.NickName = "Player " + Random.Range(0, 2000).ToString("0000");
     }
 
@@ -82,11 +84,26 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
 
         Player[] players = PhotonNetwork.PlayerList;
 
+        foreach (Transform trans in playerListContent)
+        {
+            Destroy(trans.gameObject);
+        }
+
         for (int i = 0; i < players.Length; i++)
         {
             Instantiate(playerListItemPrefab, playerListContent).GetComponent<scr_PlayerListItem>().SetUp(players[i]);
-
         }
+
+        startGameButton.SetActive(PhotonNetwork.IsMasterClient);  // 只有房主可以開始遊戲
+    }
+
+    /// <summary>
+    /// 切換房長
+    /// </summary>
+    /// <param name="newMasterClient">房長</param>
+    public override void OnMasterClientSwitched(Player newMasterClient)
+    {
+        startGameButton.SetActive(PhotonNetwork.IsMasterClient);  // 只有房主可以開始遊戲
     }
 
     /// <summary>
@@ -118,8 +135,14 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
         {
             Destroy(transform.gameObject);
         }
+
         for (int i = 0; i < roomList.Count; i++)
         {
+            if (roomList[i].RemovedFromList)
+            {
+                continue;
+            }
+
             Instantiate(roomListItemPrefab, roomListContent).GetComponent<scr_RoomListItem>().Setup(roomList[i]);
         }
     }
@@ -136,6 +159,16 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     #endregion
 
     #region - 新建功能 - 
+
+    /// <summary>
+    /// 進入房間
+    /// </summary>
+    /// <param name="info">房間資訊</param>
+    public void JoinRoom(RoomInfo info)
+    {
+        PhotonNetwork.JoinRoom(info.Name);
+        scr_MenuManager.menuManager.OpenMenu("載入選單");
+    }
 
     /// <summary>
     /// 創建房間
@@ -161,13 +194,11 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     }
 
     /// <summary>
-    /// 進入房間
+    /// 開始遊戲
     /// </summary>
-    /// <param name="info">房間資訊</param>
-    public void JoinRoom(RoomInfo info)
+    public void StartGame()
     {
-        PhotonNetwork.JoinRoom(info.Name);
-        scr_MenuManager.menuManager.OpenMenu("載入選單");
+        PhotonNetwork.LoadLevel("遊戲場景");
     }
 
     #endregion

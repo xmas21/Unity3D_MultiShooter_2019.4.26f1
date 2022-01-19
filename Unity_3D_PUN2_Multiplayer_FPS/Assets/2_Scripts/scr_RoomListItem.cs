@@ -8,7 +8,7 @@ public class scr_RoomListItem : MonoBehaviour
     [SerializeField]
     private TMP_Text text;
 
-    private RoomInfo info;
+    public RoomInfo info;
 
     /// <summary>
     /// 設定房間資訊
