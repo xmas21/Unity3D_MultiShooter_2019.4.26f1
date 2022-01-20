@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Photon.Pun;
 
 public class scr_PlayerController : MonoBehaviour
 {
@@ -20,8 +21,10 @@ public class scr_PlayerController : MonoBehaviour
     [Header("跳躍力道")]
     [SerializeField]
     private float jumpForce;
-
+    [Header("移動滑順時間")]
+    [SerializeField]
     private float moveSmoothTime;
+
     private float verticalLookRotation;  // 上下視角旋轉值
 
     private bool isGrounded;  // 是否在地板
@@ -30,14 +33,27 @@ public class scr_PlayerController : MonoBehaviour
     private Vector3 moveAmount;
 
     private Rigidbody rig;
+    private PhotonView pv;
 
     private void Awake()
     {
         rig = GetComponent<Rigidbody>();
+        pv = GetComponent<PhotonView>();
+    }
+
+    private void Start()
+    {
+        if (!pv.IsMine)
+        {
+            Destroy(GetComponentInChildren<Camera>().gameObject);
+            Destroy(rig);
+        }
     }
 
     private void Update()
     {
+        if (!pv.IsMine) return;
+
         CalculateView();
         CalculateMove();
         CalculateJump();
@@ -45,7 +61,18 @@ public class scr_PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (!pv.IsMine) return;
+
         rig.MovePosition(rig.position + transform.TransformDirection(moveAmount) * Time.deltaTime);
+    }
+
+    /// <summary>
+    /// 設定著地狀態
+    /// </summary>
+    /// <param name="_isGrounded">是否著地</param>
+    public void setGroundedState(bool _isGrounded)
+    {
+        isGrounded = _isGrounded;
     }
 
     /// <summary>
@@ -68,7 +95,7 @@ public class scr_PlayerController : MonoBehaviour
     {
         Vector3 moveDir = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical")).normalized;
 
-        moveAmount = Vector3.SmoothDamp(moveAmount, moveDir * (Input.GetKey(KeyCode.LeftShift) ? sprintSpeed : walkSpeed), ref moveSmoothVelocity, moveSmoothTime);
+        moveAmount = Vector3.SmoothDamp(moveAmount, moveDir * ((Input.GetKey(KeyCode.LeftShift) & Input.GetKey(KeyCode.W)) ? sprintSpeed : walkSpeed), ref moveSmoothVelocity, moveSmoothTime);  // 同時按著 W + shift 才能跑步
     }
 
     /// <summary>
@@ -80,15 +107,6 @@ public class scr_PlayerController : MonoBehaviour
         {
             rig.AddForce(transform.up * jumpForce);
         }
-    }
-
-    /// <summary>
-    /// 設定著地狀態
-    /// </summary>
-    /// <param name="_isGrounded">是否著地</param>
-    public void setGroundedState(bool _isGrounded)
-    {
-        isGrounded = _isGrounded;
     }
 
 }

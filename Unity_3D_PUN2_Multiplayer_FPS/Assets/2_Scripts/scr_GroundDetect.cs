@@ -6,7 +6,7 @@ public class scr_GroundDetect : MonoBehaviour
 
     private void Awake()
     {
-        playerController = GetComponent<scr_PlayerController>();
+        playerController = GetComponentInParent<scr_PlayerController>();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -35,4 +35,5 @@ public class scr_GroundDetect : MonoBehaviour
         }
         playerController.setGroundedState(true);
     }
+
 }
