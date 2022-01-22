@@ -1,11 +1,10 @@
 ﻿using UnityEngine;
 using Photon.Pun;
+using Hashtable = ExitGames.Client.Photon.Hashtable;
+using Photon.Realtime;
 
-public class scr_PlayerController : MonoBehaviour
+public class scr_PlayerController : MonoBehaviourPunCallbacks
 {
-    [Header("攝影機座標")]
-    public GameObject cameraHolder;
-
     [Header("水平靈敏度")]
     [SerializeField]
     private float mouseSensitivity_X;
@@ -25,6 +24,16 @@ public class scr_PlayerController : MonoBehaviour
     [SerializeField]
     private float moveSmoothTime;
 
+    [SerializeField]
+    [Header("攝影機座標")]
+    private GameObject cameraHolder;
+    [SerializeField]
+    [Header("武器列表")]
+    private scr_Item[] items;
+
+    private int itemIndex;
+    private int previousItemIndex = -1;
+
     private float verticalLookRotation;  // 上下視角旋轉值
 
     private bool isGrounded;  // 是否在地板
@@ -43,7 +52,11 @@ public class scr_PlayerController : MonoBehaviour
 
     private void Start()
     {
-        if (!pv.IsMine)
+        if (pv.IsMine)
+        {
+            EquipItem(0);
+        }
+        else
         {
             Destroy(GetComponentInChildren<Camera>().gameObject);
             Destroy(rig);
@@ -57,6 +70,9 @@ public class scr_PlayerController : MonoBehaviour
         CalculateView();
         CalculateMove();
         CalculateJump();
+
+        ChangeItem();
+        ChangeItem_Wheel();
     }
 
     private void FixedUpdate()
@@ -64,6 +80,19 @@ public class scr_PlayerController : MonoBehaviour
         if (!pv.IsMine) return;
 
         rig.MovePosition(rig.position + transform.TransformDirection(moveAmount) * Time.deltaTime);
+    }
+
+    /// <summary>
+    /// 玩家道具更新
+    /// </summary>
+    /// <param name="targetPlayer">目標玩家</param>
+    /// <param name="changedProps">更換的道具</param>
+    public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
+    {
+        if (!pv.IsMine && targetPlayer == pv.Owner)
+        {
+            EquipItem((int)changedProps["itemIndex"]);
+        }
     }
 
     /// <summary>
@@ -85,7 +114,7 @@ public class scr_PlayerController : MonoBehaviour
         verticalLookRotation += Input.GetAxisRaw("Mouse Y") * mouseSensitivity_Y;
         verticalLookRotation = Mathf.Clamp(verticalLookRotation, -90, 90);
 
-        cameraHolder.transform.localEulerAngles = Vector3.left * verticalLookRotation;    // 攝影機角度轉換 (X軸)
+        cameraHolder.transform.localEulerAngles = Vector3.forward * verticalLookRotation;    // 攝影機角度轉換 (X軸)
     }
 
     /// <summary>
@@ -93,7 +122,7 @@ public class scr_PlayerController : MonoBehaviour
     /// </summary>
     private void CalculateMove()
     {
-        Vector3 moveDir = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical")).normalized;
+        Vector3 moveDir = new Vector3(Input.GetAxisRaw("Vertical"), 0, -Input.GetAxisRaw("Horizontal")).normalized;
 
         moveAmount = Vector3.SmoothDamp(moveAmount, moveDir * ((Input.GetKey(KeyCode.LeftShift) & Input.GetKey(KeyCode.W)) ? sprintSpeed : walkSpeed), ref moveSmoothVelocity, moveSmoothTime);  // 同時按著 W + shift 才能跑步
     }
@@ -109,4 +138,75 @@ public class scr_PlayerController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 裝上裝備
+    /// </summary>
+    /// <param name="_index">裝備編號</param>
+    private void EquipItem(int _index)
+    {
+        if (_index == previousItemIndex) return;
+
+        itemIndex = _index;
+
+        items[itemIndex].itemGameObject.SetActive(true);
+
+        if (previousItemIndex != -1)
+        {
+            items[previousItemIndex].itemGameObject.SetActive(false);
+        }
+
+        previousItemIndex = itemIndex;
+
+        if (pv.IsMine)
+        {
+            Hashtable hash = new Hashtable();
+            hash.Add("itemIndex", itemIndex);
+            PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
+        }
+    }
+
+    /// <summary>
+    /// 切換武器
+    /// </summary>
+    private void ChangeItem()
+    {
+        for (int i = 0; i < items.Length; i++)
+        {
+            if (Input.GetKeyDown((i + 1).ToString()))
+            {
+                EquipItem(i);
+                break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 切換武器 - 滑鼠滾輪
+    /// </summary>
+    private void ChangeItem_Wheel()
+    {
+        if (Input.GetAxisRaw("Mouse ScrollWheel") > 0f)
+        {
+            if (itemIndex >= items.Length - 1)
+            {
+                EquipItem(0);
+            }
+            else
+            {
+                EquipItem(itemIndex + 1);
+            }
+        }
+        else if (Input.GetAxisRaw("Mouse ScrollWheel") < 0f)
+        {
+            if (itemIndex <= 0)
+            {
+                EquipItem(items.Length - 1);
+            }
+            else
+            {
+                EquipItem(itemIndex - 1);
+            }
+        }
+
+    }
 }
