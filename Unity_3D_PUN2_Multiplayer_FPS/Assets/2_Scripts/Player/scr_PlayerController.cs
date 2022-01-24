@@ -3,7 +3,7 @@ using Photon.Pun;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 using Photon.Realtime;
 
-public class scr_PlayerController : MonoBehaviourPunCallbacks
+public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
 {
     [Header("水平靈敏度")]
     [SerializeField]
@@ -31,6 +31,9 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     [Header("武器列表")]
     private scr_Item[] items;
 
+    private const float maxHp = 100;
+    private float currentHp = maxHp;
+
     private int itemIndex;
     private int previousItemIndex = -1;
 
@@ -41,6 +44,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     private Vector3 moveSmoothVelocity;
     private Vector3 moveAmount;
 
+    private scr_PlayerManager playerManager;
     private Rigidbody rig;
     private PhotonView pv;
 
@@ -48,6 +52,8 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
     {
         rig = GetComponent<Rigidbody>();
         pv = GetComponent<PhotonView>();
+
+        playerManager = PhotonView.Find((int)pv.InstantiationData[0]).GetComponent<scr_PlayerManager>();
     }
 
     private void Start()
@@ -73,6 +79,13 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
 
         ChangeItem();
         ChangeItem_Wheel();
+
+        FallOutMap();
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            items[itemIndex].Use();
+        }
     }
 
     private void FixedUpdate()
@@ -208,5 +221,50 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks
             }
         }
 
+    }
+
+    /// <summary>
+    /// 死亡
+    /// </summary>
+    private void Die()
+    {
+        playerManager.Die();
+    }
+
+    /// <summary>
+    /// 受傷 :  Run on the shooter's computer
+    /// </summary>
+    /// <param name="damage">傷害值</param>
+    public void TakeDamage(float damage)
+    {
+        pv.RPC("RPC_TakeDamage", RpcTarget.All, damage);
+    }
+
+    /// <summary>
+    /// 受傷 : Will run on everyone's computer but !PV.ismine make it only run Victim's computer 
+    /// </summary>
+    /// <param name="damage">傷害</param>
+    [PunRPC]
+    private void RPC_TakeDamage(float damage)
+    {
+        if (!pv.IsMine) return;
+
+        currentHp -= damage;
+
+        if (currentHp <= 0)
+        {
+            Die();
+        }
+    }
+
+    /// <summary>
+    /// 掉出地圖死亡
+    /// </summary>
+    private void FallOutMap()
+    {
+        if (transform.position.y <= -10)
+        {
+            Die();
+        }
     }
 }

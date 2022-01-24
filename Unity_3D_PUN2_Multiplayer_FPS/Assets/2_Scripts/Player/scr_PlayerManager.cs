@@ -4,6 +4,8 @@ using Photon.Pun;
 
 public class scr_PlayerManager : MonoBehaviour
 {
+    public GameObject controller;
+
     private PhotonView pv;
 
     private void Awake()
@@ -24,7 +26,15 @@ public class scr_PlayerManager : MonoBehaviour
     /// </summary>
     private void CreateController()
     {
-        PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs" , "玩家"), Vector3.zero, Quaternion.identity);
+        Transform spwanPoints = scr_SpawnManager.spawnManager.GetSpawnPoint();
+
+        controller = PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "玩家"), spwanPoints.position, spwanPoints.rotation, 0, new object[] { pv.ViewID });
+    }
+
+    public void Die()
+    {
+        PhotonNetwork.Destroy(controller);
+        CreateController();
     }
 
 }
