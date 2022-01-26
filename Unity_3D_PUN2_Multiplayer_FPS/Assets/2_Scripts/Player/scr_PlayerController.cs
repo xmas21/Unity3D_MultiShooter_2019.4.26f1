@@ -2,6 +2,7 @@
 using Photon.Pun;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 using Photon.Realtime;
+using UnityEngine.UI;
 
 public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
 {
@@ -30,6 +31,11 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
     [SerializeField]
     [Header("武器列表")]
     private scr_Item[] items;
+    [SerializeField]
+    private Image healthBarImage;
+    [SerializeField]
+    private GameObject ui;
+
 
     private const float maxHp = 100;
     private float currentHp = maxHp;
@@ -66,6 +72,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
         {
             Destroy(GetComponentInChildren<Camera>().gameObject);
             Destroy(rig);
+            Destroy(ui);
         }
     }
 
@@ -250,6 +257,8 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
         if (!pv.IsMine) return;
 
         currentHp -= damage;
+
+        healthBarImage.fillAmount = currentHp / maxHp;
 
         if (currentHp <= 0)
         {

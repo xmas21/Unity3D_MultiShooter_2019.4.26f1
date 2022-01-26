@@ -30,6 +30,7 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     [Header("開始遊戲按鈕")]
     [SerializeField]
     private GameObject startGameButton;
+    [SerializeField] [Header("玩家名稱文字")] TMP_InputField userNameInput;
 
     public static scr_Launcher launcher;
 
@@ -44,6 +45,17 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     {
         Debug.Log("Connecting to Master");
         PhotonNetwork.ConnectUsingSettings();
+
+        if (PlayerPrefs.HasKey("username"))
+        {
+            userNameInput.text = PlayerPrefs.GetString("username");
+            PhotonNetwork.NickName = userNameInput.text;
+        }
+        else
+        {
+            userNameInput.text = "Player " + Random.Range(0, 10000).ToString("0000");
+            userNameInputValueChanged();
+        }
     }
 
     #endregion
@@ -67,7 +79,6 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     {
         scr_MenuManager.menuManager.OpenMenu("大廳選單");
         Debug.Log("Join Lobby");
-        PhotonNetwork.NickName = "Player " + Random.Range(0, 2000).ToString("0000");
     }
 
     #endregion
@@ -199,6 +210,15 @@ public class scr_Launcher : MonoBehaviourPunCallbacks
     public void StartGame()
     {
         PhotonNetwork.LoadLevel("遊戲場景");
+    }
+
+    /// <summary>
+    /// 玩家更改姓名
+    /// </summary>
+    public void userNameInputValueChanged()
+    {
+        PhotonNetwork.NickName = userNameInput.text;
+        PlayerPrefs.SetString("username", userNameInput.text);
     }
 
     #endregion
