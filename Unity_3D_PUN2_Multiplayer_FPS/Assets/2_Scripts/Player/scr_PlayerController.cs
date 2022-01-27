@@ -6,55 +6,33 @@ using UnityEngine.UI;
 
 public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
 {
-    [Header("水平靈敏度")]
-    [SerializeField]
-    private float mouseSensitivity_X;
-    [Header("垂直靈敏度")]
-    [SerializeField]
-    private float mouseSensitivity_Y;
-    [Header("跑步速度")]
-    [SerializeField]
-    private float sprintSpeed;
-    [Header("走路速度")]
-    [SerializeField]
-    private float walkSpeed;
-    [Header("跳躍力道")]
-    [SerializeField]
-    private float jumpForce;
-    [Header("移動滑順時間")]
-    [SerializeField]
-    private float moveSmoothTime;
+    [SerializeField] [Header("水平靈敏度")] float mouseSensitivity_X;
+    [SerializeField] [Header("垂直靈敏度")] float mouseSensitivity_Y;
+    [SerializeField] [Header("跑步速度")] float sprintSpeed;
+    [SerializeField] [Header("走路速度")] float walkSpeed;
+    [SerializeField] [Header("跳躍力道")] float jumpForce;
+    [SerializeField] [Header("移動滑順時間")] float moveSmoothTime;
 
-    [SerializeField]
-    [Header("攝影機座標")]
-    private GameObject cameraHolder;
-    [SerializeField]
-    [Header("武器列表")]
-    private scr_Item[] items;
-    [SerializeField]
-    private Image healthBarImage;
-    [SerializeField]
-    private GameObject ui;
+    [SerializeField] [Header("攝影機座標")] GameObject cameraHolder;
+    [SerializeField] [Header("角色UI")] GameObject ui;
+    [SerializeField] [Header("武器列表")] scr_Item[] items;
+    [SerializeField] [Header("血條")] Image healthBarImage;
 
+    int itemIndex;
+    int previousItemIndex = -1;
+    float verticalLookRotation;  // 上下視角旋轉值
+    float currentHp = maxHp;
+    bool isGrounded;  // 是否在地板
+
+    Vector3 moveSmoothVelocity;
+    Vector3 moveAmount;
+    scr_PlayerManager playerManager;
+    Rigidbody rig;
+    PhotonView pv;
 
     private const float maxHp = 100;
-    private float currentHp = maxHp;
 
-    private int itemIndex;
-    private int previousItemIndex = -1;
-
-    private float verticalLookRotation;  // 上下視角旋轉值
-
-    private bool isGrounded;  // 是否在地板
-
-    private Vector3 moveSmoothVelocity;
-    private Vector3 moveAmount;
-
-    private scr_PlayerManager playerManager;
-    private Rigidbody rig;
-    private PhotonView pv;
-
-    private void Awake()
+    void Awake()
     {
         rig = GetComponent<Rigidbody>();
         pv = GetComponent<PhotonView>();
@@ -62,7 +40,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
         playerManager = PhotonView.Find((int)pv.InstantiationData[0]).GetComponent<scr_PlayerManager>();
     }
 
-    private void Start()
+    void Start()
     {
         if (pv.IsMine)
         {
@@ -76,7 +54,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
         }
     }
 
-    private void Update()
+    void Update()
     {
         if (!pv.IsMine) return;
 
@@ -88,14 +66,10 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
         ChangeItem_Wheel();
 
         FallOutMap();
-
-        if (Input.GetMouseButtonDown(0))
-        {
-            items[itemIndex].Use();
-        }
+        UseItem();
     }
 
-    private void FixedUpdate()
+    void FixedUpdate()
     {
         if (!pv.IsMine) return;
 
@@ -125,9 +99,37 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
     }
 
     /// <summary>
+    /// 受傷 :  Run on the shooter's computer
+    /// </summary>
+    /// <param name="damage">傷害值</param>
+    public void TakeDamage(float damage)
+    {
+        pv.RPC("RPC_TakeDamage", RpcTarget.All, damage);
+    }
+
+    /// <summary>
+    /// 受傷 : Will run on everyone's computer but !PV.ismine make it only run Victim's computer 
+    /// </summary>
+    /// <param name="damage">傷害</param>
+    [PunRPC]
+    void RPC_TakeDamage(float damage)
+    {
+        if (!pv.IsMine) return;
+
+        currentHp -= damage;
+
+        healthBarImage.fillAmount = currentHp / maxHp;
+
+        if (currentHp <= 0)
+        {
+            Die();
+        }
+    }
+
+    /// <summary>
     /// 視角移動
     /// </summary>
-    private void CalculateView()
+    void CalculateView()
     {
         transform.Rotate(Vector3.up * Input.GetAxisRaw("Mouse X") * mouseSensitivity_X);  // 角色直接左右旋轉 (Y軸)
 
@@ -140,7 +142,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
     /// <summary>
     /// 角色移動
     /// </summary>
-    private void CalculateMove()
+    void CalculateMove()
     {
         Vector3 moveDir = new Vector3(Input.GetAxisRaw("Vertical"), 0, -Input.GetAxisRaw("Horizontal")).normalized;
 
@@ -150,7 +152,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
     /// <summary>
     /// 角色跳躍
     /// </summary>
-    private void CalculateJump()
+    void CalculateJump()
     {
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
@@ -162,7 +164,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
     /// 裝上裝備
     /// </summary>
     /// <param name="_index">裝備編號</param>
-    private void EquipItem(int _index)
+    void EquipItem(int _index)
     {
         if (_index == previousItemIndex) return;
 
@@ -188,7 +190,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
     /// <summary>
     /// 切換武器
     /// </summary>
-    private void ChangeItem()
+    void ChangeItem()
     {
         for (int i = 0; i < items.Length; i++)
         {
@@ -203,7 +205,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
     /// <summary>
     /// 切換武器 - 滑鼠滾輪
     /// </summary>
-    private void ChangeItem_Wheel()
+    void ChangeItem_Wheel()
     {
         if (Input.GetAxisRaw("Mouse ScrollWheel") > 0f)
         {
@@ -231,49 +233,33 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
     }
 
     /// <summary>
+    /// 使用武器
+    /// </summary>
+    void UseItem()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            items[itemIndex].Use();
+        }
+    }
+
+    /// <summary>
     /// 死亡
     /// </summary>
-    private void Die()
+    void Die()
     {
         playerManager.Die();
     }
 
     /// <summary>
-    /// 受傷 :  Run on the shooter's computer
-    /// </summary>
-    /// <param name="damage">傷害值</param>
-    public void TakeDamage(float damage)
-    {
-        pv.RPC("RPC_TakeDamage", RpcTarget.All, damage);
-    }
-
-    /// <summary>
-    /// 受傷 : Will run on everyone's computer but !PV.ismine make it only run Victim's computer 
-    /// </summary>
-    /// <param name="damage">傷害</param>
-    [PunRPC]
-    private void RPC_TakeDamage(float damage)
-    {
-        if (!pv.IsMine) return;
-
-        currentHp -= damage;
-
-        healthBarImage.fillAmount = currentHp / maxHp;
-
-        if (currentHp <= 0)
-        {
-            Die();
-        }
-    }
-
-    /// <summary>
     /// 掉出地圖死亡
     /// </summary>
-    private void FallOutMap()
+    void FallOutMap()
     {
         if (transform.position.y <= -10)
         {
             Die();
         }
     }
+
 }

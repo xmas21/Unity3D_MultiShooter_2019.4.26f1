@@ -823,11 +823,11 @@ MonoBehaviour:
   jumpForce: 500
   moveSmoothTime: 0.15
   cameraHolder: {fileID: 894176990982828995}
+  ui: {fileID: 5466338028065646952}
   items:
   - {fileID: 7118815721740843252}
   - {fileID: 7456956628985826678}
   healthBarImage: {fileID: 3482869552091084369}
-  ui: {fileID: 5466338028065646952}
 --- !u!1 &6012843527995154502
 GameObject:
   m_ObjectHideFlags: 0

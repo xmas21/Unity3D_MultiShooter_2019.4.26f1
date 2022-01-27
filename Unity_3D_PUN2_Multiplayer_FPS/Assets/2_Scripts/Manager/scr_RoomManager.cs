@@ -7,7 +7,9 @@ public class scr_RoomManager : MonoBehaviourPunCallbacks
 {
     public static scr_RoomManager roomManager;
 
-    private void Awake()
+    [SerializeField] GameObject scoreboardCanvas;
+
+    void Awake()
     {
         if (roomManager)          // Check if other roomManager exists
         {
@@ -16,6 +18,11 @@ public class scr_RoomManager : MonoBehaviourPunCallbacks
         }
         DontDestroyOnLoad(gameObject);  // only this scripts
         roomManager = this;
+    }
+
+    void Update()
+    {
+        Onclick();
     }
 
     public override void OnEnable()
@@ -36,11 +43,26 @@ public class scr_RoomManager : MonoBehaviourPunCallbacks
     /// </summary>
     /// <param name="scene">現在的場景</param>
     /// <param name="loadSceneMode">場景模式</param>
-    private void OnSceneloaded(Scene scene, LoadSceneMode loadSceneMode)
+    void OnSceneloaded(Scene scene, LoadSceneMode loadSceneMode)
     {
         if (scene.buildIndex == 1) // in the game scene
         {
             PhotonNetwork.Instantiate(Path.Combine("PhotonPrefabs", "玩家管理器"), Vector3.zero, Quaternion.identity);
+        }
+    }
+
+    /// <summary>
+    /// 偵測按鈕
+    /// </summary>
+    void Onclick()
+    {
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            scoreboardCanvas.SetActive(true);
+        }
+        if (Input.GetKeyUp(KeyCode.Tab))
+        {
+            scoreboardCanvas.SetActive(false);
         }
     }
 }
