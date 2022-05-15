@@ -12,5 +12,4 @@ public class scr_ScoreboardItem : MonoBehaviour
     {
         usernameText.text = player.NickName;
     }
-
 }

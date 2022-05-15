@@ -45,6 +45,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
         if (pv.IsMine)
         {
             EquipItem(0);
+            Cursor.lockState = CursorLockMode.Locked;
         }
         else
         {
@@ -261,5 +262,4 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
             Die();
         }
     }
-
 }
