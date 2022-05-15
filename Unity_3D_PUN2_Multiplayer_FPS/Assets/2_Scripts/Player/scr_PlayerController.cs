@@ -46,6 +46,7 @@ public class scr_PlayerController : MonoBehaviourPunCallbacks, scr_IDamagable
         {
             EquipItem(0);
             Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
         else
         {
